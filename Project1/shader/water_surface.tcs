@@ -7,9 +7,10 @@ out vec3 tcPosition[];
 
 #define ID gl_InvocationID
 
-void main(){
+void main()
+{
 	tcPosition[ID] = vPosition[ID];
-	if(ID == 0)
+	if (ID == 0)
 	{
 		gl_TessLevelInner[0] = 4;
 

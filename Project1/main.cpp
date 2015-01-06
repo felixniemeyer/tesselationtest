@@ -59,7 +59,7 @@ int main()
 	glViewport(0, 0, width, height);
 
 	glm::mat4x4 projection = glm::perspective(45.0f, width / (float)height, 0.1f, 100.0f);
-	glm::mat4x4 view = glm::lookAt(glm::vec3(0, 0, 1.5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+	glm::mat4x4 view = glm::lookAt(glm::vec3(0, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 	glm::mat4x4 pv = projection * view;
 
 	WaterSurface water;

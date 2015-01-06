@@ -42,6 +42,14 @@ WaterSurface::destructGraphics()
 
 namespace helpers
 {
+	void checkForGlError()
+	{
+		GLenum err;
+		while ((err = glGetError()) != GL_NO_ERROR) {
+			std::cerr << "OpenGL error: " << gluErrorString(err) << "\n";
+		}
+	}
+
 	void readShaderCodeFromFile(std::string &code, const char* filename)
 	{
 		std::cout << "reading source from " << filename << "\n";
@@ -89,6 +97,7 @@ namespace helpers
 		std::vector<char> errorMessage(logLength ? logLength : int(1));
 		glGetProgramInfoLog(shaderProgramId, logLength, NULL, &errorMessage[0]);
 		std::cout << &errorMessage[0];
+		checkForGlError();
 	}
 }
 
@@ -113,10 +122,13 @@ WaterSurface::createShader()
 
 	shaderProgramId = glCreateProgram();
 	GLuint shaderIds[] = { vs, fs, tcs, tes };
-	helpers::linkProgram(shaderProgramId,  shaderIds, 2);
+	helpers::linkProgram(shaderProgramId,  shaderIds, 4);
 
 	glDeleteShader(vs);
 	glDeleteShader(fs);
+	glDeleteShader(tcs);
+	glDeleteShader(tes);
+	helpers::checkForGlError();
 }
 
 void
@@ -181,6 +193,7 @@ WaterSurface::draw(double time, glm::mat4x4 viewProjection)
 	glBindVertexArray(vaoId);
 	glPatchParameteri(GL_PATCH_VERTICES, 3);
 	glDrawArrays(GL_PATCHES, 0, 6);
+	helpers::checkForGlError();
 	glBindVertexArray(0);
 
 }

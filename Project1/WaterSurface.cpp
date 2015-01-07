@@ -28,6 +28,7 @@ WaterSurface::initGraphics()
 	createShader();
 	createTextures();
 	uniform_mvp = glGetUniformLocation(shaderProgramId, "mvp");
+	uniform_tessLevel = glGetUniformLocation(shaderProgramId, "tessLevel");
 }
 
 void
@@ -81,7 +82,7 @@ namespace helpers
 		std::cout << &errorMessage[0];
 	}
 
-	void linkProgram(GLuint shaderProgramId, GLuint shaderIds[], int numberOfShaders)
+	void linkProgram(GLuint shaderProgramId, GLuint shaderIds[], GLuint numberOfShaders)
 	{
 		GLint result = GL_FALSE;
 		int logLength;
@@ -121,8 +122,8 @@ WaterSurface::createShader()
 
 
 	shaderProgramId = glCreateProgram();
-	GLuint shaderIds[] = { vs, fs, tcs, tes };
-	helpers::linkProgram(shaderProgramId,  shaderIds, 4);
+	GLuint shaderIds[] = { vs, fs, tcs, tes }, shaderCount = 4;
+	helpers::linkProgram(shaderProgramId,  shaderIds, shaderCount);
 
 	glDeleteShader(vs);
 	glDeleteShader(fs);
@@ -185,15 +186,16 @@ WaterSurface::createTextures()
 void 
 WaterSurface::draw(double time, glm::mat4x4 viewProjection)
 {
-	mvp = glm::rotate(viewProjection, (float)time*0.4f, glm::tvec3<float>(glm::cos(time*0.2123), glm::sin(time*0.2123), 0));
-
+	mvp = viewProjection;// glm::rotate(viewProjection, (float)time*0.4f, glm::tvec3<float>(glm::cos(time*0.2123), glm::sin(time*0.2123), 0));
+	GLfloat tl = glm::sin(time*0.4f) * 30 + 31;
 	glUseProgram(shaderProgramId);
 	glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, &mvp[0][0]);
+	glUniform1f(uniform_tessLevel, tl);
 
 	glBindVertexArray(vaoId);
 	glPatchParameteri(GL_PATCH_VERTICES, 3);
 	glDrawArrays(GL_PATCHES, 0, 6);
-	helpers::checkForGlError();
+//	helpers::checkForGlError();
 	glBindVertexArray(0);
 
 }

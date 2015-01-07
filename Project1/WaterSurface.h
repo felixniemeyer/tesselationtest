@@ -16,7 +16,7 @@ private:
 
 	unsigned int vaoId;
 	unsigned int vertexBuffer, uvBuffer;
-	unsigned int uniform_mvp;
+	unsigned int uniform_mvp, uniform_tessLevel;
 	unsigned int texSurface, texHeight;
 
 	unsigned int shaderProgramId;

@@ -2,8 +2,12 @@
 
 layout(vertices=3) out;
 
-in vec3 vPosition[];
-out vec3 tcPosition[];
+in vec4 vPosition[];
+in vec2 vUV[];
+out vec4 tcPosition[];
+out vec2 tcUV[];
+
+out vec3 normal;
 
 #define ID gl_InvocationID
 
@@ -12,10 +16,14 @@ uniform float tessLevel;
 void main()
 {
 	tcPosition[ID] = vPosition[ID];
+	tcUV[ID] = vUV[ID];
+
 	if (ID == 0)
 	{
+		normal = normalize(cross(tcPosition[0].xyz-tcPosition[1].xyz, tcPosition[0].xyz-tcPosition[2].xyz));
+		
 		gl_TessLevelInner[0] = tessLevel;
-
+		
 		gl_TessLevelOuter[0] = tessLevel;
 		gl_TessLevelOuter[1] = tessLevel;
 		gl_TessLevelOuter[2] = tessLevel;

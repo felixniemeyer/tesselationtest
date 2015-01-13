@@ -8,5 +8,5 @@ uniform sampler2D surface;
 
 void main()
 {
-	color = vec3(1,1,1);//texture(surface, uv).rgb;
+	color = texture(surface, uv).rgb;
 }

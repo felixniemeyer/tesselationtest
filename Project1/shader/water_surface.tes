@@ -2,16 +2,29 @@
 
 layout(triangles, fractional_odd_spacing, ccw) in;
 
-in vec3 tcPosition[];
-out vec3 tePosition;
+in vec4 tcPosition[];
+in vec2 tcUV[];
+
+in vec3 normal;
+
+out vec2 uv;
 
 uniform mat4 mvp;
+uniform sampler2D surface;
 
 void main()
 {
-	gl_Position = mvp * vec4(vec3(
-		tcPosition[0].xyz * gl_TessCoord.x +
-		tcPosition[1].xyz * gl_TessCoord.y +
-		tcPosition[2].xyz * gl_TessCoord.z +
-		1.0	),1);
+	vec4 pos = vec4(
+		tcPosition[0].xyzw * gl_TessCoord.x +
+		tcPosition[1].xyzw * gl_TessCoord.y +
+		tcPosition[2].xyzw * gl_TessCoord.z
+	); // vec4 weg?
+	uv = 
+		tcUV[0].xy * gl_TessCoord.x +
+		tcUV[1].xy * gl_TessCoord.y +
+		tcUV[2].xy * gl_TessCoord.z;
+
+	pos = pos + vec4( normal * (texture(surface, uv).r-0.2), 0)*3;
+
+	gl_Position = mvp * pos;
 }

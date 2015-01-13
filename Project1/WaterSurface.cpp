@@ -82,21 +82,23 @@ namespace helpers
 		std::cout << &errorMessage[0];
 	}
 
-	void linkProgram(GLuint shaderProgramId, GLuint shaderIds[], GLuint numberOfShaders)
+	void linkProgram(GLuint programId, GLuint shaderIds[], GLuint numberOfShaders)
 	{
 		GLint result = GL_FALSE;
 		int logLength;
 
-		std::cout << "linking shader program\n";
+		
+		for (GLuint i = 0; i < numberOfShaders; i++)
+			glAttachShader(programId, shaderIds[i]);
 
-		for (int i = 0; i < numberOfShaders; i++)
-			glAttachShader(shaderProgramId, shaderIds[i]);
-		glLinkProgram(shaderProgramId);
+		std::cout << " => linking shader program\n";
 
-		glGetProgramiv(shaderProgramId, GL_LINK_STATUS, &result);
-		glGetProgramiv(shaderProgramId, GL_INFO_LOG_LENGTH, &logLength);
+		glLinkProgram(programId);
+
+		glGetProgramiv(programId, GL_LINK_STATUS, &result);
+		glGetProgramiv(programId, GL_INFO_LOG_LENGTH, &logLength);
 		std::vector<char> errorMessage(logLength ? logLength : int(1));
-		glGetProgramInfoLog(shaderProgramId, logLength, NULL, &errorMessage[0]);
+		glGetProgramInfoLog(programId, logLength, NULL, &errorMessage[0]);
 		std::cout << &errorMessage[0];
 		checkForGlError();
 	}
@@ -109,8 +111,9 @@ WaterSurface::createShader()
 	GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
 	GLuint tcs = glCreateShader(GL_TESS_CONTROL_SHADER);
 	GLuint tes = glCreateShader(GL_TESS_EVALUATION_SHADER);
+	GLuint wireframeFs = glCreateShader(GL_FRAGMENT_SHADER);
 
-	std::string vsCode, fsCode, tcsCode, tesCode;
+	std::string vsCode, fsCode, tcsCode, tesCode, wireframeFsCode;
 	helpers::readShaderCodeFromFile(vsCode, "./shader/water_surface.vert");
 	helpers::compileShader(vs, vsCode.c_str());
 	helpers::readShaderCodeFromFile(fsCode, "./shader/water_surface.frag");
@@ -119,16 +122,23 @@ WaterSurface::createShader()
 	helpers::compileShader(tcs, tcsCode.c_str());
 	helpers::readShaderCodeFromFile(tesCode, "./shader/water_surface.tes");
 	helpers::compileShader(tes, tesCode.c_str());
+	helpers::readShaderCodeFromFile(wireframeFsCode, "./shader/water_surface_wireframe.frag");
+	helpers::compileShader(wireframeFs, wireframeFsCode.c_str());
 
+	wireframeShaderProgramId = glCreateProgram();
+	GLuint wireframeShaderIds[] = { vs, wireframeFs, tcs, tes };
+	helpers::linkProgram(wireframeShaderProgramId, wireframeShaderIds, 4);
 
 	shaderProgramId = glCreateProgram();
-	GLuint shaderIds[] = { vs, fs, tcs, tes }, shaderCount = 4;
-	helpers::linkProgram(shaderProgramId,  shaderIds, shaderCount);
+	GLuint shaderIds[] = { vs, fs, tcs, tes };
+	helpers::linkProgram(shaderProgramId,  shaderIds, 4);
+
 
 	glDeleteShader(vs);
 	glDeleteShader(fs);
 	glDeleteShader(tcs);
 	glDeleteShader(tes);
+	glDeleteShader(wireframeFs);
 	helpers::checkForGlError();
 }
 
@@ -142,8 +152,8 @@ WaterSurface::createSquare()
 		-1, -1, 0,
 		-1, 1, 0,
 		1, -1, 0,
-		-1, 1, 0,
 		1, -1, 0,
+		-1, 1, 0,
 		1, 1, 0
 	};
 	glGenBuffers(1, &vertexBuffer);
@@ -154,18 +164,17 @@ WaterSurface::createSquare()
 
 	float verticeUVs[] = {
 		0, 0,
-		0, 1,
-		1, 0,
-		0, 1,
-		1, 0,
-		1, 1
+		0, 0.1f,
+		0.1f, 0,
+		0.1f, 0,
+		0, 0.1f,
+		0.1f, 0.1f
 	};
 	glGenBuffers(1, &uvBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
 	glBufferData(GL_ARRAY_BUFFER, 12 * sizeof(GLfloat), verticeUVs, GL_STATIC_DRAW);
 	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(1);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	glBindVertexArray(0);
 
@@ -186,16 +195,32 @@ WaterSurface::createTextures()
 void 
 WaterSurface::draw(double time, glm::mat4x4 viewProjection)
 {
-	mvp = viewProjection;// glm::rotate(viewProjection, (float)time*0.4f, glm::tvec3<float>(glm::cos(time*0.2123), glm::sin(time*0.2123), 0));
-	GLfloat tl = glm::sin(time*0.4f) * 30 + 31;
+	mvp = glm::rotate(viewProjection, (float)time*0.4f, glm::tvec3<float>(glm::cos(time*0.2123), glm::sin(time*0.2123), 0));
+	tessLevel = glm::sin(glm::mod((float)time*0.1f, 2.0f) * glm::pi<float>()) * 30 + 31;
+
 	glUseProgram(shaderProgramId);
+	glEnable(GL_DEPTH_TEST);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	drawArray();
+
+	glUseProgram(wireframeShaderProgramId);
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	drawArray();
+}
+
+void
+WaterSurface::drawArray()
+{
 	glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, &mvp[0][0]);
-	glUniform1f(uniform_tessLevel, tl);
+	glUniform1f(uniform_tessLevel, tessLevel);
 
 	glBindVertexArray(vaoId);
 	glPatchParameteri(GL_PATCH_VERTICES, 3);
 	glDrawArrays(GL_PATCHES, 0, 6);
-//	helpers::checkForGlError();
+	//	helpers::checkForGlError();
 	glBindVertexArray(0);
 
 }

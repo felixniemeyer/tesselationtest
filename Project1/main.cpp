@@ -32,8 +32,8 @@ int main()
 		return 1;
 	}
 
-	bool windowed = true;
-	if (!(window = glfwCreateWindow(1920, 1080, "Terrain1", windowed ? glfwGetPrimaryMonitor() : NULL, NULL)))
+	bool windowed = false;
+	if (!(window = glfwCreateWindow(windowed ? 1024 : 1920, windowed ? 768 : 1080, "Terrain1", windowed ? NULL : glfwGetPrimaryMonitor(), NULL)))
 	{
 		std::cout << "couldn't create glfw window\n";
 		glfwTerminate();
@@ -59,7 +59,7 @@ int main()
 	glViewport(0, 0, width, height);
 
 	glm::mat4x4 projection = glm::perspective(45.0f, width / (float)height, 0.1f, 100.0f);
-	glm::mat4x4 view = glm::lookAt(glm::vec3(0, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+	glm::mat4x4 view = glm::lookAt(glm::vec3(0, 0, 3), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 	glm::mat4x4 pv = projection * view;
 
 	WaterSurface water;
